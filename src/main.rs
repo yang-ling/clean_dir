@@ -13,26 +13,22 @@ extern crate error_chain;
 mod errors {
     // Create the Error, ErrorKind, ResultExt, and Result types
     error_chain! {
-        errors {
-            NoTre(t: String) {
-                description("No Tre Message")
-                display("No Tre Message: {}", t)
-            }
+        foreign_links {
+            Io(std::io::Error);
+            Wd(walkdir::Error);
         }
     }
 }
 
 use errors::*;
+use std::env;
+use walkdir::WalkDir;
 
 quick_main!(run);
 
 fn run() -> Result<()> {
-    use std::fs::File;
-
-    // This operation will fail
-    // File::open("tretrete").chain_err(|| ErrorKind::NoTre(String::from("no t")))?;
-    File::open("tretrete")
-        .map_err(|e| Error::with_chain(e, ErrorKind::NoTre(String::from("no t"))))?;
-
+    for entry in WalkDir::new(env::current_dir()?) {
+        println!("{}", entry?.path().display());
+    }
     Ok(())
 }
