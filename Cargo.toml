@@ -1,0 +1,8 @@
+[package]
+name = 'clean_dir'
+version = '0.1.0'
+authors = ['yangling']
+edition = '2018'
+
+[dependencies]
+error-chain = '0.12.2'
