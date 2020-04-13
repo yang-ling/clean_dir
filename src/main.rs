@@ -22,7 +22,7 @@ mod errors {
 
 use errors::*;
 use std::env;
-use walkdir::DirEntry;
+// use walkdir::DirEntry;
 use walkdir::WalkDir;
 
 quick_main!(run);
@@ -30,7 +30,12 @@ quick_main!(run);
 fn run() -> Result<()> {
     for entry in WalkDir::new(env::current_dir()?)
         .into_iter()
-        // .filter_entry(|_e: &DirEntry| true)
+        .filter_entry(|e| {
+            e.file_name()
+                .to_str()
+                .map(|s| !s.starts_with(".") && s != "target")
+                .unwrap_or(false)
+        })
         .filter_map(|e| e.ok())
     {
         println!("{}", entry.path().display());
