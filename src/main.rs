@@ -37,7 +37,11 @@ fn run() -> Result<()> {
                 .unwrap_or(false)
         })
     {
-        println!("{}", entry?.path().display());
+        let entry = entry?;
+        println!("{}", entry.path().display());
+        if entry.file_name().to_string_lossy() == "Cargo.toml" {
+            println!("Cargo!");
+        }
     }
     Ok(())
 }
