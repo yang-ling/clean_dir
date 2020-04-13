@@ -36,9 +36,8 @@ fn run() -> Result<()> {
                 .map(|s| !s.starts_with(".") && s != "target")
                 .unwrap_or(false)
         })
-        .filter_map(|e| e.ok())
     {
-        println!("{}", entry.path().display());
+        println!("{}", entry?.path().display());
     }
     Ok(())
 }
