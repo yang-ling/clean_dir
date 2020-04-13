@@ -22,25 +22,36 @@ mod errors {
 
 use errors::*;
 use std::env;
-// use walkdir::DirEntry;
+use std::process::Command;
 use walkdir::WalkDir;
 
 quick_main!(run);
 
 fn run() -> Result<()> {
-    for entry in WalkDir::new(env::current_dir()?)
+    let mut it = WalkDir::new(env::current_dir()?)
         .into_iter()
         .filter_entry(|e| {
             e.file_name()
                 .to_str()
                 .map(|s| !s.starts_with(".") && s != "target")
                 .unwrap_or(false)
-        })
-    {
-        let entry = entry?;
-        println!("{}", entry.path().display());
+        });
+    loop {
+        let entry = match it.next() {
+            Some(e) => e?,
+            None => break,
+        };
         if entry.file_name().to_string_lossy() == "Cargo.toml" {
-            println!("Cargo!");
+            let workdir = entry.path().parent().unwrap();
+            println!("Cargo clean in {:?}", workdir);
+            if !Command::new("cargo")
+                .arg("clean")
+                .current_dir(workdir)
+                .status()?
+                .success()
+            {
+                bail!("cargo clean failed!");
+            }
         }
     }
     Ok(())
