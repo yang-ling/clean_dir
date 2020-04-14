@@ -64,10 +64,14 @@ fn run() -> Result<()> {
         if entry.file_name().to_string_lossy() == "Cargo.toml" {
             let workdir = entry.path().parent().unwrap();
             println!("Cargo clean in {:?}", workdir);
-            if !Command::new("cargos")
+            if !Command::new("cargo")
                 .arg("clean")
                 .current_dir(workdir)
-                .status()?
+                .status()
+                .map_err(|e| match e.kind() {
+                    std::io::ErrorKind::NotFound => Error::with_chain(e, "cargo is not installed!"),
+                    _ => Error::with_chain(e, "Errors happened during cargo clean!"),
+                })?
                 .success()
             {
                 bail!("cargo clean failed!");
