@@ -1,8 +1,13 @@
 //! Loop directories
 //!
-//! If it contains Cargo.toml, run cargo clean, and go to up directory
+//! If it contains Cargo.toml, run cargo clean, and go to parent directory
 //!
-//! If it doesn't contain Cargo.toml, loop it.
+//! If it doesn't contain Cargo.toml, continue.
+//!
+//! If Error happens in any directory, record it and continue.
+//!
+//! Summary: Show how many directories are cleaned, and what directories are not cleaned due to
+//! errors.
 //!
 // `error_chain!` can recurse deeply
 #![recursion_limit = "1024"]
@@ -11,7 +16,6 @@
 extern crate error_chain;
 
 mod errors {
-    // Create the Error, ErrorKind, ResultExt, and Result types
     error_chain! {
         foreign_links {
             Io(std::io::Error);
@@ -29,7 +33,6 @@ use std::env;
 use std::process::Command;
 use walkdir::WalkDir;
 
-// quick_main!(run);
 fn main() {
     if let Err(_) = env::var("RUST_LOG") {
         env::set_var("RUST_LOG", "info");
@@ -57,36 +60,36 @@ fn main() {
 }
 
 fn run() -> Result<()> {
-    let mut it = WalkDir::new(env::current_dir()?)
+    let mut cmd = Command::new("cargo");
+    cmd.arg("clean");
+    let it = WalkDir::new(env::current_dir()?)
         .into_iter()
         .filter_entry(|e| {
             e.file_name()
                 .to_str()
                 .map(|s| !s.starts_with(".") && s != "target")
                 .unwrap_or(false)
-        });
-    loop {
-        let entry = match it.next() {
-            Some(e) => e?,
-            None => break,
-        };
-        debug!("Now in {}", entry.path().display());
-        if entry.file_name().to_string_lossy() == "Cargo.toml" {
-            let workdir = entry.path().parent().unwrap();
-            info!("Cargo clean in {:?}", workdir);
-            if !Command::new("cargo")
-                .arg("clean")
-                .current_dir(workdir)
-                .status()
-                .map_err(|e| match e.kind() {
-                    std::io::ErrorKind::NotFound => Error::with_chain(e, "cargo is not installed!"),
-                    _ => Error::with_chain(e, "Errors happened during cargo clean!"),
-                })?
-                .success()
-            {
-                bail!("cargo clean failed!");
-            }
+        })
+        .filter_map(|entry| entry.ok())
+        .filter(|entry| entry.file_name().to_string_lossy() == "Cargo.toml");
+    let mut error_dirs = Vec::new();
+    for entry in it {
+        let workdir = entry.path().parent().unwrap();
+        info!("Cargo clean in {:?}", workdir);
+        if !cmd
+            .current_dir(workdir)
+            .status()
+            .map_err(|e| match e.kind() {
+                std::io::ErrorKind::NotFound => Error::with_chain(e, "cargo is not installed!"),
+                _ => Error::with_chain(e, "Errors happened during cargo clean!"),
+            })?
+            .success()
+        {
+            error_dirs.push(workdir.to_path_buf());
         }
+    }
+    if !error_dirs.is_empty() {
+        bail!("Cargo clean failed in those directories: {:#?}", error_dirs);
     }
     Ok(())
 }
