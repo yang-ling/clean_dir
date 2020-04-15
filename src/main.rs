@@ -70,6 +70,7 @@ fn run() -> Result<()> {
             Some(e) => e?,
             None => break,
         };
+        debug!("Now in {}", entry.path().display());
         if entry.file_name().to_string_lossy() == "Cargo.toml" {
             let workdir = entry.path().parent().unwrap();
             info!("Cargo clean in {:?}", workdir);
