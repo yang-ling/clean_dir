@@ -1,14 +1,3 @@
-//! Loop directories
-//!
-//! If it contains Cargo.toml, run cargo clean, and go to parent directory
-//!
-//! If it doesn't contain Cargo.toml, continue.
-//!
-//! If Error happens in any directory, record it and continue.
-//!
-//! Summary: Show how many directories are cleaned, and what directories are not cleaned due to
-//! errors.
-//!
 // `error_chain!` can recurse deeply
 #![recursion_limit = "1024"]
 
