@@ -20,6 +20,10 @@ mod errors {
     }
 }
 
+extern crate pretty_env_logger;
+#[macro_use]
+extern crate log;
+
 use errors::*;
 use std::env;
 use std::process::Command;
@@ -27,16 +31,21 @@ use walkdir::WalkDir;
 
 // quick_main!(run);
 fn main() {
+    if let Err(_) = env::var("RUST_LOG") {
+        env::set_var("RUST_LOG", "info");
+    }
+    pretty_env_logger::init();
+
     match run() {
         Err(ref e) => {
-            eprintln!("{}", error_chain::ChainedError::display_chain(e));
+            error!("{}", error_chain::ChainedError::display_chain(e));
             if let Some(backtrace) = e.backtrace() {
                 let frames = backtrace.frames();
                 for frame in frames.iter() {
                     for symbol in frame.symbols().iter() {
                         if let (Some(file), Some(lineno)) = (symbol.filename(), symbol.lineno()) {
                             if file.display().to_string()[0..3] == "src".to_string() {
-                                println!("{}:{}", file.display().to_string(), lineno);
+                                info!("{}:{}", file.display().to_string(), lineno);
                             }
                         }
                     }
@@ -63,7 +72,7 @@ fn run() -> Result<()> {
         };
         if entry.file_name().to_string_lossy() == "Cargo.toml" {
             let workdir = entry.path().parent().unwrap();
-            println!("Cargo clean in {:?}", workdir);
+            info!("Cargo clean in {:?}", workdir);
             if !Command::new("cargo")
                 .arg("clean")
                 .current_dir(workdir)
